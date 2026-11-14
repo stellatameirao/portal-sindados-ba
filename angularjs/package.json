@@ -1,0 +1,9 @@
+{
+  "name": "sindados-angularjs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Atividade AngularJS - Portal SINDADOS-BA com componentes em diretivas (Acordeão, Paginação, Barra de Progresso, Abas, Menu Suspenso e Toast)",
+  "scripts": {
+    "start": "npx --yes http-server . -p 8080 -o -c-1"
+  }
+}

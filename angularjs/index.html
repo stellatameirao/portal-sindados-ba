@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR" ng-app="sindados">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#071C92">
+  <title>SINDADOS-BA — Portal (Atividade AngularJS)</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body ng-cloak>
+
+  
+  <div class="topbar">
+    <div class="topbar__inner">
+      <a href="tel:+557130320229">📞 {{ org.phone }}</a>
+      <span>💬 WhatsApp {{ org.whatsapp }}</span>
+      <a class="topbar__extra" ng-href="mailto:{{ org.email }}">✉️ {{ org.email }}</a>
+    </div>
+  </div>
+
+  
+  <header class="app-header" ng-controller="HeaderController">
+    <div class="app-header__inner">
+      <a class="brand" href="#inicio" aria-label="SINDADOS-BA, página inicial">
+        <span class="brand__mark" aria-hidden="true">SD</span>
+        <span>
+          <span class="brand__name">SINDADOS<span>-BA</span></span>
+          <span class="brand__tagline">Trabalhadores em TI e Processamento de Dados da Bahia</span>
+        </span>
+      </a>
+
+      <nav class="main-nav" aria-label="Seções do portal">
+        <a class="main-nav__link" ng-repeat="link in navLinks" href="#{{ link.id }}">{{ link.label }}</a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="saved-badge" ng-click="showSaved()" aria-label="Notícias salvas">
+          ★ {{ savedCount() }}
+        </button>
+
+        
+        <div class="mobile-menu">
+          <app-dropdown
+            options="menuOptions"
+            selected="menu.selected"
+            placeholder="☰ Menu"
+            compact="true"
+            aria-label-text="Abrir menu de navegação">
+          </app-dropdown>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  
+  <section class="hero" id="inicio">
+    <div class="hero__inner">
+      <span class="hero__kicker">Sindicato é pra lutar</span>
+      <h1 class="hero__title">Unidos por direitos<br>na tecnologia</h1>
+      <p class="hero__text">
+        O {{ org.shortName }} representa trabalhadoras e trabalhadores de processamento de dados,
+        informática e TIC na Bahia. Acompanhe as notícias, associe-se e fale com o sindicato.
+      </p>
+      <div class="hero__actions">
+        <a class="btn btn--red" href="#associe-se">Associe-se</a>
+        <a class="btn btn--primary" href="#noticias">Últimas notícias</a>
+        <a class="btn btn--light" href="#denuncie">Denuncie!</a>
+      </div>
+    </div>
+  </section>
+
+  <main class="container">
+    <div class="grid">
+
+      
+      <section class="card span-full" id="noticias" ng-controller="NewsController" aria-labelledby="news-title">
+        <div class="card__header">
+          <h2 class="card__title" id="news-title">Notícias</h2>
+          <span class="card__tag">Menu suspenso · Paginação · Abas</span>
+        </div>
+
+        <div class="news-layout">
+          
+          <div>
+            <div class="toolbar">
+              <label class="field">
+                <span class="field__label">Buscar</span>
+                <input class="input" type="search" placeholder="Ex.: assembleia, acordo, Serpro..."
+                       ng-model="filters.search"
+                       ng-model-options="{ debounce: 250 }"
+                       ng-change="onFilterChange()">
+              </label>
+
+              <div class="field">
+                <span class="field__label">Categoria</span>
+                
+                <app-dropdown options="categories" selected="filters.category"
+                              aria-label-text="Filtrar por categoria"
+                              on-select="onCategorySelect(option)"></app-dropdown>
+              </div>
+
+              <div class="field">
+                <span class="field__label">Empresa</span>
+                <app-dropdown options="companies" selected="filters.company"
+                              aria-label-text="Filtrar por empresa"
+                              on-select="onCompanySelect(option)"></app-dropdown>
+              </div>
+
+              <div class="field">
+                <span class="field__label">Ordenar</span>
+                <app-dropdown options="sortOptions" selected="filters.sort"
+                              aria-label-text="Ordenar notícias"
+                              on-select="onSortSelect(option)"></app-dropdown>
+              </div>
+
+              <label class="field" style="flex: 0 0 96px;">
+                <span class="field__label">Por página</span>
+                <select class="select" ng-model="pager.size"
+                        ng-options="size for size in pageSizes"
+                        ng-change="onFilterChange()"></select>
+              </label>
+            </div>
+
+            <p class="result-info">
+              <span>Exibindo {{ result.from }}–{{ result.to }} de {{ result.totalItems | plural:'notícia':'notícias' }}</span>
+              <span ng-if="filters.search">para “{{ filters.search }}”</span>
+              <button type="button" class="btn btn--ghost btn--sm" ng-if="hasActiveFilters()" ng-click="clearFilters()">
+                ✕ limpar filtros
+              </button>
+            </p>
+
+            <div class="news-grid" ng-if="result.items.length">
+              <button type="button" class="news-card" id="noticia-{{ item.id }}"
+                      ng-repeat="item in result.items track by item.id"
+                      ng-class="{ 'news-card--active': selected.id === item.id }"
+                      ng-click="select(item)">
+                <span class="news-card__meta">
+                  <span class="chip" ng-class="{ 'chip--red': item.category === 'assembleias' || item.category === 'juridico' }">
+                    {{ categoryOf(item).icon }} {{ categoryOf(item).label }}
+                  </span>
+                  <span>{{ item.date | dateBR }} · {{ item.date | relativeDate }}</span>
+                </span>
+                <span class="news-card__title">{{ item.title }}</span>
+                <span class="muted">{{ item.summary | truncate:90 }}</span>
+              </button>
+            </div>
+
+            <div class="empty-state" ng-if="!result.items.length">
+              Nenhuma notícia encontrada com esses filtros.
+            </div>
+
+            
+            <app-pagination ng-if="result.totalItems"
+                            total-pages="result.totalPages"
+                            current-page="result.currentPage"
+                            on-page-change="changePage(page)">
+            </app-pagination>
+          </div>
+
+          
+          <aside class="details" aria-label="Notícia selecionada">
+            <div ng-if="selected">
+              <div class="row">
+                <span class="chip">{{ companyOf(selected).label }}</span>
+                <span class="muted">{{ selected.date | dateBR }}</span>
+              </div>
+              <h3 class="details__title">{{ selected.title }}</h3>
+
+              
+              <app-tabs tabs="detail.tabs" active-index="detail.tabIndex"></app-tabs>
+
+              <div class="details__actions">
+                <button type="button" class="btn" ng-class="isSaved(selected) ? 'btn--primary' : 'btn--outline'"
+                        ng-click="toggleSaved(selected)">
+                  {{ isSaved(selected) ? '★ Salva' : '☆ Salvar' }}
+                </button>
+                <button type="button" class="btn btn--outline" ng-click="share(selected)">🔗 Copiar link</button>
+              </div>
+            </div>
+            <p class="muted" ng-if="!selected">Selecione uma notícia para ler.</p>
+          </aside>
+        </div>
+      </section>
+
+      
+      <section class="card" id="associe-se" ng-controller="MembershipController" aria-labelledby="member-title">
+        <div class="card__header">
+          <h2 class="card__title" id="member-title">Associe-se</h2>
+          <span class="card__tag">Barra de progresso</span>
+        </div>
+        <p class="card__description">Preencha a ficha de filiação. A barra mostra quanto falta para concluir.</p>
+
+        <form class="stack" novalidate ng-submit="submit()">
+          
+          <app-progress-bar value="status.percent"
+                            label="Ficha: {{ status.done }} de {{ status.total }} itens"
+                            variant="{{ formVariant() }}"></app-progress-bar>
+
+          <div class="form-grid">
+            <label class="field" style="grid-column: 1 / -1;">
+              <span class="field__label">Nome completo *</span>
+              <input class="input" type="text" autocomplete="name" ng-model="form.name"
+                     ng-blur="touched.name = true"
+                     ng-class="{ 'input--invalid': touched.name && !form.name }">
+            </label>
+
+            <label class="field">
+              <span class="field__label">E-mail *</span>
+              <input class="input" type="email" autocomplete="email" ng-model="form.email"
+                     ng-model-options="{ allowInvalid: true }"
+                     ng-blur="touched.email = true"
+                     ng-class="{ 'input--invalid': touched.email && !isValidEmail(form.email) }">
+              <span class="field__hint field__hint--error" ng-if="touched.email && !isValidEmail(form.email)">E-mail inválido</span>
+            </label>
+
+            <label class="field">
+              <span class="field__label">Telefone / WhatsApp *</span>
+              <input class="input" type="tel" autocomplete="tel" placeholder="(71) 90000-0000"
+                     ng-model="form.phone" ng-blur="touched.phone = true">
+            </label>
+
+            <div class="field">
+              <span class="field__label">Empresa *</span>
+              <app-dropdown options="companies" selected="form.company"
+                            placeholder="Selecione a empresa"
+                            aria-label-text="Empresa onde trabalha"></app-dropdown>
+            </div>
+
+            <label class="field">
+              <span class="field__label">Matrícula *</span>
+              <input class="input" type="text" ng-model="form.registration" ng-blur="touched.registration = true">
+            </label>
+          </div>
+
+          <div class="field">
+            <span class="field__label">Comprovante de vínculo (contracheque ou crachá) *</span>
+            <input class="file-input" id="membership-file" type="file" accept=".pdf,.jpg,.jpeg,.png"
+                   app-file-change="onFileSelected(files)" ng-disabled="upload.status === 'uploading'">
+            
+            <app-progress-bar value="upload.progress"
+                              label="{{ uploadLabel() | truncate:40 }}"
+                              variant="{{ uploadVariant() }}"
+                              striped="upload.status === 'uploading'"></app-progress-bar>
+          </div>
+
+          <label class="checkbox">
+            <input type="checkbox" ng-model="form.consent">
+            <span>Autorizo o uso dos meus dados para fins de filiação, conforme a LGPD. *</span>
+          </label>
+
+          <p class="field__hint" ng-if="status.missing.length">
+            Falta: {{ status.missing.join(', ') }}
+          </p>
+
+          <div class="row">
+            <button type="submit" class="btn btn--red" ng-disabled="sending">
+              {{ sending ? 'Enviando...' : 'Enviar ficha' }}
+            </button>
+            <button type="button" class="btn btn--outline" ng-click="reset()">Limpar</button>
+          </div>
+        </form>
+      </section>
+
+      
+      <section class="card card--alert" id="denuncie" ng-controller="ReportController" aria-labelledby="report-title">
+        <div class="card__header">
+          <h2 class="card__title" id="report-title">Denuncie!</h2>
+          <span class="card__tag">Notificação toast</span>
+        </div>
+        <p class="card__description">
+          Relate irregularidades no seu local de trabalho. O retorno aparece em notificações no canto da tela.
+        </p>
+
+        <form class="stack" novalidate ng-submit="submit()">
+          <div class="form-grid">
+            <div class="field">
+              <span class="field__label">Tipo *</span>
+              <app-dropdown options="reportTypes" selected="report.type"
+                            placeholder="Selecione o tipo"
+                            aria-label-text="Tipo de denúncia"></app-dropdown>
+            </div>
+            <div class="field">
+              <span class="field__label">Empresa (opcional)</span>
+              <app-dropdown options="companies" selected="report.company"
+                            placeholder="Não informar"
+                            aria-label-text="Empresa da denúncia"></app-dropdown>
+            </div>
+          </div>
+
+          <label class="field">
+            <span class="field__label">Descreva a situação *</span>
+            <textarea class="textarea" maxlength="{{ maxLength }}" ng-model="report.message"
+                      placeholder="O que aconteceu, quando e onde (sem expor colegas)."></textarea>
+            <span class="field__hint">{{ remaining() }} caracteres restantes</span>
+          </label>
+
+          <label class="checkbox">
+            <input type="checkbox" ng-model="report.anonymous" ng-change="onAnonymousChange()">
+            <span>Enviar de forma anônima</span>
+          </label>
+
+          <label class="field" ng-if="!report.anonymous">
+            <span class="field__label">E-mail para retorno *</span>
+            <input class="input" type="email" ng-model="report.email" ng-model-options="{ allowInvalid: true }">
+          </label>
+
+          <div class="row">
+            <button type="submit" class="btn btn--red" ng-disabled="sending">
+              {{ sending ? 'Enviando...' : 'Enviar denúncia' }}
+            </button>
+            <span class="muted" ng-if="lastProtocol">Último protocolo: <strong>{{ lastProtocol }}</strong></span>
+          </div>
+        </form>
+      </section>
+
+      
+      <section class="card" id="institucional" ng-controller="InstitutionalController" aria-labelledby="inst-title">
+        <div class="card__header">
+          <h2 class="card__title" id="inst-title">Institucional</h2>
+          <span class="card__tag">Abas</span>
+        </div>
+        <p class="card__description">{{ org.fullName }}.</p>
+
+        
+        <app-tabs tabs="tabs" active-index="tab.index" on-change="onTabChange(tab)"></app-tabs>
+      </section>
+
+      
+      <section class="card" id="faq" ng-controller="FaqController" aria-labelledby="faq-title">
+        <div class="card__header">
+          <h2 class="card__title" id="faq-title">Dúvidas frequentes</h2>
+          <span class="card__tag">Acordeão</span>
+        </div>
+
+        <div class="toolbar">
+          <label class="field">
+            <span class="field__label">Filtrar perguntas</span>
+            <input class="input" type="search" placeholder="Ex.: jurídico, LGPD..."
+                   ng-model="faq.search" ng-change="onFaqSearch()">
+          </label>
+        </div>
+
+        
+        <app-accordion ng-if="faq.items.length"
+                       items="faq.items"
+                       single-open="true"
+                       initial-open="0"
+                       on-toggle="onFaqToggle(item, open)">
+        </app-accordion>
+        <div class="empty-state" ng-if="!faq.items.length">Nenhuma pergunta encontrada.</div>
+
+        <div class="row" style="margin-top:14px;justify-content:space-between">
+          <span class="muted">{{ faq.items.length | plural:'pergunta':'perguntas' }}</span>
+          <div class="row">
+            <span class="muted">Ajudou?</span>
+            <button type="button" class="btn btn--outline btn--sm" ng-click="sendFeedback(true)">👍 Sim</button>
+            <button type="button" class="btn btn--outline btn--sm" ng-click="sendFeedback(false)">👎 Não</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  
+  <footer class="app-footer">
+    <div class="app-footer__inner">
+      <div>
+        <p class="app-footer__title">{{ org.shortName }}</p>
+        <p>{{ org.address }}</p>
+      </div>
+      <div>
+        <p class="app-footer__title">Contato</p>
+        <p>Tel.: {{ org.phone }}<br>WhatsApp: {{ org.whatsapp }}<br>
+          <a ng-href="mailto:{{ org.email }}">{{ org.email }}</a></p>
+      </div>
+      <div>
+        <p class="app-footer__title">Acesso rápido</p>
+        <p><a href="#associe-se">Associe-se</a><br><a href="#denuncie">Denuncie!</a><br><a href="#faq">Dúvidas</a></p>
+      </div>
+      <p class="app-footer__note">
+        Projeto acadêmico (Atividade AngularJS — Engenharia de Software, UCSal), inspirado no site
+        do SINDADOS-BA. Notícias e formulários são ilustrativos e não têm vínculo oficial com o sindicato.
+        v{{ appConfig.version }} · {{ currentYear }}
+      </p>
+    </div>
+  </footer>
+
+  
+  <app-toast-container></app-toast-container>
+
+  
+  <script src="lib/angular.min.js"></script>
+
+  
+  <script src="js/app.js"></script>
+
+  
+  <script src="js/data/seed.constant.js"></script>
+  <script src="js/services/news.service.js"></script>
+  <script src="js/services/saved.service.js"></script>
+  <script src="js/services/form.service.js"></script>
+  <script src="js/services/toast.service.js"></script>
+  <script src="js/services/upload.service.js"></script>
+
+  
+  <script src="js/filters/filters.js"></script>
+
+  
+  <script src="js/directives/accordion.directive.js"></script>
+  <script src="js/directives/pagination.directive.js"></script>
+  <script src="js/directives/progress-bar.directive.js"></script>
+  <script src="js/directives/tabs.directive.js"></script>
+  <script src="js/directives/dropdown.directive.js"></script>
+  <script src="js/directives/toast.directive.js"></script>
+  <script src="js/directives/file-change.directive.js"></script>
+
+  
+  <script src="js/controllers/header.controller.js"></script>
+  <script src="js/controllers/news.controller.js"></script>
+  <script src="js/controllers/membership.controller.js"></script>
+  <script src="js/controllers/report.controller.js"></script>
+  <script src="js/controllers/institutional.controller.js"></script>
+  <script src="js/controllers/faq.controller.js"></script>
+</body>
+</html>
